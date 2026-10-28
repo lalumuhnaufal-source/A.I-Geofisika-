@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Dashboard pemantauan dan analisis curah hujan Indonesia (data simulasi)">
+  <title>Indonesia Rainfall Monitoring Dashboard</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Pustaka grafik -->
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Pustaka peta -->
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Kode utama website (data simulasi tertanam di dalamnya) -->
+  <script defer src="script.js"></script>
+</head>
+<body>
+  <div class="container">
+
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-icon">🌧️</div>
+        <div>
+          <p class="eyebrow">GEOFISIKA • CURAH HUJAN INDONESIA</p>
+          <h1>Indonesia Rainfall Monitoring Dashboard</h1>
+        </div>
+      </div>
+      <div class="meta" id="hmeta"></div>
+    </header>
+
+    <div class="sim">
+      SIMULATED DATA — NOT OFFICIAL BMKG OBSERVATIONS
+      <span>DATA SIMULASI — Dataset ini digunakan untuk pengembangan dan pengujian dashboard, bukan data observasi resmi BMKG. Bukan pemantauan cuaca langsung.</span>
+    </div>
+
+    <main>
+
+      <!-- Ringkasan (7 KPI, diisi oleh script.js) -->
+      <section class="kpis" id="kpis"></section>
+
+      <!-- Filter: semua kontrol memengaruhi KPI, grafik, peta, insight, dan tabel -->
+      <section class="panel">
+        <h2>Filter</h2>
+        <div class="filters">
+          <div><label>Tanggal mulai<input type="date" id="f_d1"></label></div>
+          <div><label>Tanggal akhir<input type="date" id="f_d2"></label></div>
+          <div>
+            <label>Tahun
+              <select id="f_y">
+                <option value="">Semua</option>
+                <option>2024</option>
+                <option>2025</option>
+              </select>
+            </label>
+          </div>
+          <div><label>Bulan<select id="f_m"></select></label></div>
+          <div>
+            <label>Stasiun (ketik untuk mencari)
+              <input id="f_s" list="stl" placeholder="Semua stasiun">
+              <datalist id="stl"></datalist>
+            </label>
+          </div>
+          <div><label>Curah hujan min (mm)<input type="number" id="f_min" min="0" step="0.1"></label></div>
+          <div><label>Curah hujan maks (mm)<input type="number" id="f_max" min="0" step="0.1"></label></div>
+          <div><label>Provinsi (multi)<select id="f_p" multiple></select></label></div>
+          <div><label>Kota/Kabupaten (multi)<select id="f_c" multiple></select></label></div>
+          <div><label>Kategori (multi)<select id="f_k" multiple></select></label></div>
+        </div>
+        <div class="bar">
+          <button class="sec" id="reset">Reset Filter</button>
+          <button id="csv">Ekspor CSV (hasil filter)</button>
+          <span id="count"></span>
+          <span id="empty">Tidak ada data yang cocok dengan filter. Ubah atau reset filter.</span>
+        </div>
+        <div class="note">Multi-pilih: tahan Ctrl/Cmd untuk memilih beberapa. Semua pemrosesan dilakukan di browser.</div>
+      </section>
+
+      <!-- Grafik 1: tren bulanan -->
+      <section class="panel">
+        <h2>1. Tren curah hujan bulanan</h2>
+        <div class="seg" id="s1"></div>
+        <div class="note" id="n1"></div>
+        <div class="cv"><canvas id="c1"></canvas></div>
+      </section>
+
+      <div class="grid2">
+        <!-- Grafik 2: provinsi -->
+        <section class="panel">
+          <h2>2. Curah hujan per provinsi</h2>
+          <div class="seg" id="s2"></div>
+          <div class="note" id="n2"></div>
+          <div class="cv"><canvas id="c2"></canvas></div>
+        </section>
+
+        <!-- Grafik 3: kategori -->
+        <section class="panel">
+          <h2>3. Distribusi kategori hujan</h2>
+          <div class="note">Kategori dari kolom Kategori_Hujan (batas kerja dataset, bukan klaim klasifikasi resmi BMKG).</div>
+          <div class="cv"><canvas id="c3"></canvas></div>
+        </section>
+
+        <!-- Grafik 4: peringkat stasiun -->
+        <section class="panel">
+          <h2>4. Peringkat stasiun</h2>
+          <div class="seg" id="s4"></div>
+          <div class="note">Klik batang untuk memfilter ke stasiun tersebut.</div>
+          <div class="cv"><canvas id="c4"></canvas></div>
+        </section>
+
+        <!-- Grafik 5: hujan vs kelembapan -->
+        <section class="panel">
+          <h2>5. Hujan vs kelembapan</h2>
+          <div class="note" id="n5"></div>
+          <div class="cv"><canvas id="c5"></canvas></div>
+        </section>
+
+        <!-- Grafik 6: hujan vs suhu -->
+        <section class="panel">
+          <h2>6. Hujan vs suhu</h2>
+          <div class="note" id="n6"></div>
+          <div class="cv"><canvas id="c6"></canvas></div>
+        </section>
+
+        <!-- Grafik 7: hujan vs angin -->
+        <section class="panel">
+          <h2>7. Hujan vs kecepatan angin</h2>
+          <div class="note" id="n7"></div>
+          <div class="cv"><canvas id="c7"></canvas></div>
+        </section>
+      </div>
+
+      <!-- Peta stasiun -->
+      <section class="panel">
+        <h2>8. Peta stasiun (rekaman simulasi)</h2>
+        <div class="note">Warna marker = kategori dari rata-rata curah hujan per observasi stasiun pada data terfilter. Tanpa interpolasi. Data simulasi.</div>
+        <div id="map"></div>
+        <div class="note" id="leg"></div>
+      </section>
+
+      <!-- Key Insights (dihitung ulang setiap filter berubah) -->
+      <section class="panel">
+        <h2>Key Insights (dihitung dari data terfilter, data simulasi)</h2>
+        <div id="ins"></div>
+      </section>
+
+      <!-- Tabel observasi -->
+      <section class="panel">
+        <details>
+          <summary>Tabel observasi rinci (klik header untuk mengurutkan)</summary>
+          <div class="bar">
+            <button class="sec" id="pv">Sebelumnya</button>
+            <span id="pg"></span>
+            <button class="sec" id="nx">Berikutnya</button>
+          </div>
+          <div class="tw"><table id="tb"></table></div>
+        </details>
+      </section>
+
+      <!-- Validasi data -->
+      <section class="panel">
+        <h2>Validasi data</h2>
+        <div id="val" class="note"></div>
+      </section>
+
+    </main>
+  </div>
+</body>
+</html>
